@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Treino Personalizado Pro Final</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<style>
+body{
+    font-family:'Segoe UI', sans-serif;
+    background:#121212;
+    color:white;
+    text-align:center;
+    padding:20px;
+    transition:0.3s;
+}
+
+.container{ max-width:500px; margin:auto; }
+
+.card{
+    background:#1e1e1e;
+    padding:20px;
+    border-radius:15px;
+    margin-bottom:15px;
+}
+
+input{
+    width:100%;
+    padding:10px;
+    margin:5px 0;
+    border-radius:8px;
+    border:none;
+}
+
+button{
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    margin:5px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.add{ background:#2962ff; color:white;}
+.start{ background:#00c853; color:white;}
+.reset{ background:#d50000; color:white;}
+.confirm{ background:#ff9800; color:white;}
+
+.exercise-item{
+    background:#333;
+    padding:8px;
+    border-radius:8px;
+    margin:5px 0;
+}
+
+/* CORES SUAVES */
+.work-bg{ background:#1e3a5f; }
+.rest-bg{ background:#1f4d3a; }
+.transition-bg{ background:#5a1f1f; }
+
+.blink{
+    animation: blinkSoft 0.8s infinite;
+}
+
+@keyframes blinkSoft{
+    0%{ opacity:1; }
+    50%{ opacity:0.6; }
+    100%{ opacity:1; }
+}
+
+.circle-wrapper{
+    position:relative;
+    width:250px;
+    height:250px;
+    margin:20px auto;
+}
+
+svg{ transform:rotate(-90deg);}
+circle{ fill:none; stroke-width:14;}
+#bgCircle{ stroke:#333;}
+#progressCircle{
+    stroke:#fff;
+    stroke-linecap:round;
+    transition:stroke-dashoffset 1s linear;
+}
+
+#timeText{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    font-size:50px;
+    font-weight:bold;
+}
+
+#exerciseName{
+    font-size:34px;
+    font-weight:800;
+    margin-top:25px;
+    letter-spacing:1.5px;
+}
+
+#roundInfo{
+    margin-top:5px;
+    font-size:16px;
+    opacity:0.8;
+}
+
+#totalTimeDisplay{
+    margin-top:15px;
+    font-size:14px;
+    opacity:0.8;
+}
+
+.hidden{ display:none;}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h2>🔥 Treino Personalizado Pro</h2>
+
+<div class="card" id="builder">
+
+<!-- CONFIG INICIAL -->
+<div id="configSection">
+
+<label>Quantidade de Rounds</label>
+<input type="number" id="rounds" value="3">
+
+<label>Intervalo entre Rounds (segundos)</label>
+<input type="number" id="transitionTime" value="30">
+
+<button class="confirm">Confirmar Configuração</button>
+
+</div>
+
+<!-- EXERCÍCIOS (OCULTO INICIALMENTE) -->
+<div id="exerciseSection" class="hidden">
+
+<input type="text" id="exName" placeholder="Nome do Exercício">
+<input type="number" id="exTime" placeholder="Tempo do Exercício (segundos)">
+<input type="number" id="exRest" placeholder="Pausa após exercício (segundos)">
+
+<button class="add">Adicionar Exercício</button>
+
+<hr>
+
+<div id="exerciseList"></div>
+<div id="totalTimeDisplay"></div>
+
+</div>
+
+</div>
+
+<button class="start hidden">Iniciar</button>
+<button class="reset">Cancelar</button>
+
+<div id="exerciseName"></div>
+<div id="roundInfo"></div>
+
+<div class="circle-wrapper">
+<svg width="250" height="250">
+<circle id="bgCircle" cx="125" cy="125" r="115"/>
+<circle id="progressCircle" cx="125" cy="125" r="115"/>
+</svg>
+<div id="timeText">00</div>
+</div>
+
+</div>
+
+<script>
+
+let exercises=[];
+let currentIndex=0;
+let currentRound=1;
+let totalRounds=1;
+let phase="work";
+let timeLeft,totalTime;
+let interval=null;
+let transitionTime=0;
+
+const radius=115;
+const circumference=2*Math.PI*radius;
+$("#progressCircle").css("stroke-dasharray",circumference);
+
+function speak(text){
+    let msg=new SpeechSynthesisUtterance(text);
+    msg.lang="pt-BR";
+    speechSynthesis.speak(msg);
+}
+
+function vibrate(){
+    if(navigator.vibrate) navigator.vibrate(200);
+}
+
+function formatTime(totalSeconds){
+    let minutes=Math.floor(totalSeconds/60);
+    let seconds=totalSeconds%60;
+    return (minutes<10?"0":"")+minutes+":"+(seconds<10?"0":"")+seconds;
+}
+
+function calculateTotalTime(){
+
+    let totalSingleRound=0;
+    exercises.forEach(ex=>{
+        totalSingleRound+=ex.time+ex.rest;
+    });
+
+    let total=totalSingleRound*totalRounds;
+
+    if(totalRounds>1){
+        total+=transitionTime*(totalRounds-1);
+    }
+
+    $("#totalTimeDisplay").html(
+        "<strong>Tempo total do treino:</strong>
+"+
+        formatTime(total)
+    );
+}
+
+$(".confirm").click(()=>{
+    totalRounds=parseInt($("#rounds").val())||1;
+    transitionTime=parseInt($("#transitionTime").val())||0;
+
+    $("#configSection").addClass("hidden");
+    $("#exerciseSection").removeClass("hidden");
+    $(".start").removeClass("hidden");
+});
+
+$(".add").click(()=>{
+
+    let name=$("#exName").val();
+    let time=parseInt($("#exTime").val());
+    let rest=parseInt($("#exRest").val())||0;
+
+    if(!name||!time) return alert("Preencha corretamente");
+
+    exercises.push({name,time,rest});
+
+    $("#exerciseList").append(
+        `<div class="exercise-item">${name} - ${time}s / pausa ${rest}s</div>`
+    );
+
+    $("#exName").val("");
+    $("#exTime").val("");
+    $("#exRest").val("");
+
+    calculateTotalTime();
+});
+
+function updateCircle(){
+    let percent=timeLeft/totalTime;
+    let offset=circumference-(percent*circumference);
+    $("#progressCircle").css("stroke-dashoffset",offset);
+}
+
+function updateDisplay(){
+
+    $("#timeText").text(timeLeft);
+    $("#roundInfo").text("Round "+currentRound+" de "+totalRounds);
+
+    $("body").removeClass("work-bg rest-bg transition-bg blink");
+
+    if(phase==="work"){
+        $("body").addClass("work-bg");
+        $("#exerciseName").text(exercises[currentIndex].name);
+    }
+    else if(phase==="rest"){
+        $("body").addClass("rest-bg");
+        $("#exerciseName").text("Pausa");
+    }
+    else{
+        $("body").addClass("transition-bg");
+        $("#exerciseName").text("Intervalo entre Rounds");
+    }
+
+    if(timeLeft<=5){
+        $("body").addClass("blink");
+        speak(timeLeft.toString());
+        vibrate();
+    }
+
+    updateCircle();
+}
+
+function nextPhase(){
+
+    if(phase==="work"){
+        phase="rest";
+        timeLeft=exercises[currentIndex].rest;
+        totalTime=timeLeft;
+        speak("Pausa");
+    }
+    else if(phase==="rest"){
+        currentIndex++;
+        if(currentIndex<exercises.length){
+            phase="work";
+            timeLeft=exercises[currentIndex].time;
+            totalTime=timeLeft;
+            speak(exercises[currentIndex].name);
+        }else{
+            if(currentRound<totalRounds){
+                phase="transition";
+                timeLeft=transitionTime;
+                totalTime=timeLeft;
+                speak("Intervalo");
+            }else{
+                finish();
+            }
+        }
+    }
+    else{
+        currentRound++;
+        currentIndex=0;
+        phase="work";
+        timeLeft=exercises[0].time;
+        totalTime=timeLeft;
+        speak("Iniciando Round "+currentRound);
+    }
+}
+
+function start(){
+
+    if(exercises.length===0) return alert("Adicione exercícios!");
+
+    $("#builder").addClass("hidden");
+
+    currentRound=1;
+    currentIndex=0;
+    phase="work";
+    timeLeft=exercises[0].time;
+    totalTime=timeLeft;
+
+    speak("Iniciando Round 1");
+
+    interval=setInterval(()=>{
+        timeLeft--;
+        if(timeLeft<=0) nextPhase();
+        updateDisplay();
+    },1000);
+
+    updateDisplay();
+}
+
+function finish(){
+    clearInterval(interval);
+    speak("Treino finalizado");
+    alert("Treino Finalizado 💪");
+    reset();
+}
+
+function reset(){
+    clearInterval(interval);
+    interval=null;
+    location.reload();
+}
+
+$(".start").click(start);
+$(".reset").click(reset);
+
+</script>
+
+</body>
+</html>
+ 
