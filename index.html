@@ -2,7 +2,11 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Treino Personalizado Pro Final</title>
+
+<!-- ESSENCIAL PARA CELULAR -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Treino Personalizado Pro</title>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <style>
@@ -11,34 +15,51 @@ body{
     background:#121212;
     color:white;
     text-align:center;
-    padding:20px;
+    padding:15px;
+    margin:0;
     transition:0.3s;
 }
 
-.container{ max-width:500px; margin:auto; }
+.container{
+    max-width:600px;
+    margin:auto;
+}
+
+h2{
+    font-size:28px;
+    margin-bottom:20px;
+}
 
 .card{
     background:#1e1e1e;
     padding:20px;
-    border-radius:15px;
-    margin-bottom:15px;
+    border-radius:18px;
+    margin-bottom:20px;
+}
+
+label{
+    font-size:16px;
+    font-weight:600;
 }
 
 input{
     width:100%;
-    padding:10px;
-    margin:5px 0;
-    border-radius:8px;
+    padding:14px;
+    margin:8px 0;
+    border-radius:10px;
     border:none;
+    font-size:18px;
 }
 
 button{
-    padding:10px 20px;
+    padding:14px 20px;
     border:none;
-    border-radius:8px;
-    margin:5px;
+    border-radius:10px;
+    margin:8px 5px;
     font-weight:bold;
+    font-size:16px;
     cursor:pointer;
+    width:100%;
 }
 
 .add{ background:#2962ff; color:white;}
@@ -48,9 +69,10 @@ button{
 
 .exercise-item{
     background:#333;
-    padding:8px;
-    border-radius:8px;
-    margin:5px 0;
+    padding:10px;
+    border-radius:10px;
+    margin:6px 0;
+    font-size:16px;
 }
 
 /* CORES SUAVES */
@@ -68,16 +90,29 @@ button{
     100%{ opacity:1; }
 }
 
+/* CÍRCULO RESPONSIVO */
 .circle-wrapper{
     position:relative;
-    width:250px;
-    height:250px;
-    margin:20px auto;
+    width:80vw;
+    max-width:320px;
+    height:80vw;
+    max-height:320px;
+    margin:30px auto;
 }
 
-svg{ transform:rotate(-90deg);}
-circle{ fill:none; stroke-width:14;}
+svg{
+    width:100%;
+    height:100%;
+    transform:rotate(-90deg);
+}
+
+circle{
+    fill:none;
+    stroke-width:14;
+}
+
 #bgCircle{ stroke:#333;}
+
 #progressCircle{
     stroke:#fff;
     stroke-linecap:round;
@@ -89,27 +124,27 @@ circle{ fill:none; stroke-width:14;}
     top:50%;
     left:50%;
     transform:translate(-50%,-50%);
-    font-size:50px;
+    font-size:60px;
     font-weight:bold;
 }
 
 #exerciseName{
-    font-size:34px;
+    font-size:28px;
     font-weight:800;
-    margin-top:25px;
-    letter-spacing:1.5px;
+    margin-top:15px;
+    letter-spacing:1px;
 }
 
 #roundInfo{
     margin-top:5px;
-    font-size:16px;
-    opacity:0.8;
+    font-size:18px;
+    opacity:0.9;
 }
 
 #totalTimeDisplay{
     margin-top:15px;
-    font-size:14px;
-    opacity:0.8;
+    font-size:16px;
+    opacity:0.9;
 }
 
 .hidden{ display:none;}
@@ -123,9 +158,7 @@ circle{ fill:none; stroke-width:14;}
 
 <div class="card" id="builder">
 
-<!-- CONFIG INICIAL -->
 <div id="configSection">
-
 <label>Quantidade de Rounds</label>
 <input type="number" id="rounds" value="3">
 
@@ -133,12 +166,9 @@ circle{ fill:none; stroke-width:14;}
 <input type="number" id="transitionTime" value="30">
 
 <button class="confirm">Confirmar Configuração</button>
-
 </div>
 
-<!-- EXERCÍCIOS (OCULTO INICIALMENTE) -->
 <div id="exerciseSection" class="hidden">
-
 <input type="text" id="exName" placeholder="Nome do Exercício">
 <input type="number" id="exTime" placeholder="Tempo do Exercício (segundos)">
 <input type="number" id="exRest" placeholder="Pausa após exercício (segundos)">
@@ -149,19 +179,18 @@ circle{ fill:none; stroke-width:14;}
 
 <div id="exerciseList"></div>
 <div id="totalTimeDisplay"></div>
-
 </div>
 
 </div>
 
-<button class="start hidden">Iniciar</button>
+<button class="start hidden">Iniciar Treino</button>
 <button class="reset">Cancelar</button>
 
 <div id="exerciseName"></div>
 <div id="roundInfo"></div>
 
 <div class="circle-wrapper">
-<svg width="250" height="250">
+<svg viewBox="0 0 250 250">
 <circle id="bgCircle" cx="125" cy="125" r="115"/>
 <circle id="progressCircle" cx="125" cy="125" r="115"/>
 </svg>
@@ -202,7 +231,6 @@ function formatTime(totalSeconds){
 }
 
 function calculateTotalTime(){
-
     let totalSingleRound=0;
     exercises.forEach(ex=>{
         totalSingleRound+=ex.time+ex.rest;
@@ -230,7 +258,6 @@ $(".confirm").click(()=>{
 });
 
 $(".add").click(()=>{
-
     let name=$("#exName").val();
     let time=parseInt($("#exTime").val());
     let rest=parseInt($("#exRest").val())||0;
@@ -257,7 +284,6 @@ function updateCircle(){
 }
 
 function updateDisplay(){
-
     $("#timeText").text(timeLeft);
     $("#roundInfo").text("Round "+currentRound+" de "+totalRounds);
 
@@ -286,7 +312,6 @@ function updateDisplay(){
 }
 
 function nextPhase(){
-
     if(phase==="work"){
         phase="rest";
         timeLeft=exercises[currentIndex].rest;
@@ -322,7 +347,6 @@ function nextPhase(){
 }
 
 function start(){
-
     if(exercises.length===0) return alert("Adicione exercícios!");
 
     $("#builder").addClass("hidden");
@@ -353,7 +377,6 @@ function finish(){
 
 function reset(){
     clearInterval(interval);
-    interval=null;
     location.reload();
 }
 
