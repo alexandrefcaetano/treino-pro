@@ -2,10 +2,7 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-
-<!-- ESSENCIAL PARA CELULAR -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Treino Personalizado Pro</title>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
@@ -75,7 +72,6 @@ button{
     font-size:16px;
 }
 
-/* CORES SUAVES */
 .work-bg{ background:#1e3a5f; }
 .rest-bg{ background:#1f4d3a; }
 .transition-bg{ background:#5a1f1f; }
@@ -90,7 +86,6 @@ button{
     100%{ opacity:1; }
 }
 
-/* CÍRCULO RESPONSIVO */
 .circle-wrapper{
     position:relative;
     width:80vw;
@@ -116,7 +111,6 @@ circle{
 #progressCircle{
     stroke:#fff;
     stroke-linecap:round;
-    transition:stroke-dashoffset 1s linear;
 }
 
 #timeText{
@@ -132,19 +126,16 @@ circle{
     font-size:28px;
     font-weight:800;
     margin-top:15px;
-    letter-spacing:1px;
 }
 
 #roundInfo{
     margin-top:5px;
     font-size:18px;
-    opacity:0.9;
 }
 
 #totalTimeDisplay{
     margin-top:15px;
     font-size:16px;
-    opacity:0.9;
 }
 
 .hidden{ display:none;}
@@ -206,9 +197,11 @@ let currentIndex=0;
 let currentRound=1;
 let totalRounds=1;
 let phase="work";
-let timeLeft,totalTime;
 let interval=null;
 let transitionTime=0;
+let timeLeft=0;
+let totalTime=0;
+let endTime=0;
 
 const radius=115;
 const circumference=2*Math.PI*radius;
@@ -217,6 +210,7 @@ $("#progressCircle").css("stroke-dasharray",circumference);
 function speak(text){
     let msg=new SpeechSynthesisUtterance(text);
     msg.lang="pt-BR";
+    speechSynthesis.cancel();
     speechSynthesis.speak(msg);
 }
 
@@ -237,14 +231,12 @@ function calculateTotalTime(){
     });
 
     let total=totalSingleRound*totalRounds;
-
     if(totalRounds>1){
         total+=transitionTime*(totalRounds-1);
     }
 
     $("#totalTimeDisplay").html(
-        "<strong>Tempo total do treino:</strong><br>"+
-        formatTime(total)
+        "<strong>Tempo total do treino:</strong><br>"+formatTime(total)
     );
 }
 
@@ -277,6 +269,25 @@ $(".add").click(()=>{
     calculateTotalTime();
 });
 
+function startPhase(duration){
+    totalTime=duration;
+    endTime=Date.now()+(duration*1000);
+
+    clearInterval(interval);
+
+    interval=setInterval(()=>{
+        let now=Date.now();
+        timeLeft=Math.ceil((endTime-now)/1000);
+
+        if(timeLeft<=0){
+            clearInterval(interval);
+            nextPhase();
+        }
+
+        updateDisplay();
+    },200);
+}
+
 function updateCircle(){
     let percent=timeLeft/totalTime;
     let offset=circumference-(percent*circumference);
@@ -284,7 +295,7 @@ function updateCircle(){
 }
 
 function updateDisplay(){
-    $("#timeText").text(timeLeft);
+    $("#timeText").text(timeLeft>0?timeLeft:0);
     $("#roundInfo").text("Round "+currentRound+" de "+totalRounds);
 
     $("body").removeClass("work-bg rest-bg transition-bg blink");
@@ -302,7 +313,7 @@ function updateDisplay(){
         $("#exerciseName").text("Intervalo entre Rounds");
     }
 
-    if(timeLeft<=5){
+    if(timeLeft<=5 && timeLeft>0){
         $("body").addClass("blink");
         speak(timeLeft.toString());
         vibrate();
@@ -312,24 +323,22 @@ function updateDisplay(){
 }
 
 function nextPhase(){
+
     if(phase==="work"){
         phase="rest";
-        timeLeft=exercises[currentIndex].rest;
-        totalTime=timeLeft;
+        startPhase(exercises[currentIndex].rest);
         speak("Pausa");
     }
     else if(phase==="rest"){
         currentIndex++;
         if(currentIndex<exercises.length){
             phase="work";
-            timeLeft=exercises[currentIndex].time;
-            totalTime=timeLeft;
+            startPhase(exercises[currentIndex].time);
             speak(exercises[currentIndex].name);
         }else{
             if(currentRound<totalRounds){
                 phase="transition";
-                timeLeft=transitionTime;
-                totalTime=timeLeft;
+                startPhase(transitionTime);
                 speak("Intervalo");
             }else{
                 finish();
@@ -340,8 +349,7 @@ function nextPhase(){
         currentRound++;
         currentIndex=0;
         phase="work";
-        timeLeft=exercises[0].time;
-        totalTime=timeLeft;
+        startPhase(exercises[0].time);
         speak("Iniciando Round "+currentRound);
     }
 }
@@ -354,18 +362,9 @@ function start(){
     currentRound=1;
     currentIndex=0;
     phase="work";
-    timeLeft=exercises[0].time;
-    totalTime=timeLeft;
 
     speak("Iniciando Round 1");
-
-    interval=setInterval(()=>{
-        timeLeft--;
-        if(timeLeft<=0) nextPhase();
-        updateDisplay();
-    },1000);
-
-    updateDisplay();
+    startPhase(exercises[0].time);
 }
 
 function finish(){
